@@ -1,6 +1,11 @@
-# Measuring code health with metron
+---
+name: norm
+description: Measure code with Norm: graph redundancy and consistency for Go, JavaScript/TypeScript and Python, plus Go mutation score and cognitive complexity. Use after changing code or reviewing code health, then act on the evidence each finding provides.
+---
 
-metron reports explicit code metrics and, for each gap, the change that
+# Measuring code health with Norm
+
+Norm reports explicit code metrics and, for each gap, the change that
 closes it. Graph checks support Go, JavaScript/TypeScript and Python; complexity
 and mutation currently support Go only. Run it, read what it found, and turn
 that into work someone can do in order.
@@ -12,11 +17,11 @@ so and say why.
 ## Check the tools
 
 ```bash
-command -v metron || echo "install: https://github.com/yanmxa/metron"
+command -v norm || echo "install: https://github.com/yanmxa/norm"
 command -v go
 ```
 
-The graph axis automatically builds a local index in `.metron/`; no external
+The graph axis automatically builds a local index in `.norm/`; no external
 indexer or Node runtime is needed. Unresolved calls are reported as a limitation,
 not invented as edges. Go is needed when running mutation tests.
 
@@ -25,7 +30,7 @@ not invented as edges. Go is needed when running mutation tests.
 After changing supported source code, measure the change:
 
 ```bash
-metron --since main --axes complexity,graph --format json
+norm --since main --axes complexity,graph --format json
 ```
 
 Indexing cost depends on repository size; unchanged files reuse cached parses.
@@ -33,7 +38,7 @@ Add the mutation axis when the question is whether Go tests hold up — it runs
 the test suite, so it costs minutes on a large repository:
 
 ```bash
-metron --since main --axes all --budget 10m --format json
+norm --since main --axes all --budget 10m --format json
 ```
 
 To review existing code rather than a change, use `--all`. It answers strictly
@@ -66,7 +71,7 @@ Parse the JSON. Three parts matter:
 
 Ignore nothing silently. If you deprioritise a finding, say why.
 
-Read the flagged functions before proposing how to restructure them. metron says
+Read the flagged functions before proposing how to restructure them. Norm says
 a function is hard to read; it does not say what it should become.
 
 ## Close the loop
@@ -84,7 +89,7 @@ Stop when the exit code is `0`. The codes are the stop condition:
 | `2` | a reading fell outside its range |
 | `3` | budget spent; the readings cover only a sample, so do not treat as a pass |
 
-**Never edit `metron.json` thresholds, delete tests, or add `//nolint` to make a
+**Never edit `norm.json` thresholds, delete tests, or add `//nolint` to make a
 reading pass.** A gate is only worth having if the thing being gated cannot move
 it. If a reference range is genuinely wrong for the repository, say so and let a
 human change it.
@@ -97,7 +102,7 @@ what to fix in order, then what was not measured.
 ```markdown
 # Code health: <repo or package>
 
-Measured with `metron --all --axes ...` on <commit>. <N> source files.
+Measured with `norm --all --axes ...` on <commit>. <N> source files.
 
 ## State
 
@@ -115,14 +120,14 @@ It is both the hardest function to read and the least pinned, so a change here
 is the most likely to break something silently.
 
 Do: extract <the specific responsibilities visible in the code>, then add
-assertions for <the specific survivors metron listed>.
+assertions for <the specific survivors Norm listed>.
 
 ## Not measured
-- `cognitive Δ` — `--all` has no base revision. Run `metron --since main`.
+- `cognitive Δ` — `--all` has no base revision. Run `norm --since main`.
 - graph inconsistency — no base revision for new-edge checks.
 ```
 
-Ground every claim in a number metron produced.
+Ground every claim in a number Norm produced.
 
 ## What each reading means
 
@@ -138,4 +143,4 @@ Ground every claim in a number metron produced.
 | CRAP (per function) | Complexity weighted by how poorly tested it is. Over 30 is the conventional limit. |
 
 Full definitions and worked examples:
-https://github.com/yanmxa/metron/blob/main/docs/metrics.md
+https://github.com/yanmxa/norm/blob/main/docs/metrics.md

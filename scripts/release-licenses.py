@@ -6,7 +6,7 @@ import subprocess
 
 
 used_modules = set(subprocess.check_output(
-    ["go", "list", "-deps", "-f", "{{with .Module}}{{.Path}}{{end}}", "./cmd/metron"],
+    ["go", "list", "-deps", "-f", "{{with .Module}}{{.Path}}{{end}}", "./cmd/norm"],
     text=True,
 ).splitlines())
 output = subprocess.check_output(["go", "list", "-m", "-json", "all"], text=True)

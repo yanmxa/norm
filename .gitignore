@@ -1,5 +1,5 @@
 .codegraph/
-.metron/
+.norm/
 /bin/
 /dist/
-/metron
+/norm

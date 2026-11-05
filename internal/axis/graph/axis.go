@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yanmxa/metron/internal/axis"
-	"github.com/yanmxa/metron/internal/codeindex"
-	"github.com/yanmxa/metron/internal/target"
+	"github.com/yanmxa/norm/internal/axis"
+	"github.com/yanmxa/norm/internal/codeindex"
+	"github.com/yanmxa/norm/internal/target"
 )
 
 type Config struct {

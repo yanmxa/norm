@@ -1,5 +1,5 @@
 name: False finding
-description: metron reported something that is not actually a problem
+description: Norm reported something that is not actually a problem
 labels: [false-positive]
 body:
   - type: markdown

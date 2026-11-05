@@ -3,7 +3,7 @@ package gate
 import (
 	"testing"
 
-	"github.com/yanmxa/metron/internal/axis"
+	"github.com/yanmxa/norm/internal/axis"
 )
 
 func measure(key string, v, high float64, headline bool) axis.Measure {

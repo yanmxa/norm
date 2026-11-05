@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/yanmxa/metron/internal/axis"
-	"github.com/yanmxa/metron/internal/target"
+	"github.com/yanmxa/norm/internal/axis"
+	"github.com/yanmxa/norm/internal/target"
 )
 
 // Config holds the reference ranges. They are per-repo settings, not universal

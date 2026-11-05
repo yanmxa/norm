@@ -19,9 +19,28 @@ The examples are small Go programs. You can reproduce any of them.
 ```
 Reference range: **≥ 70%**
 
-metron rewrites the code in small, deliberate ways — flipping a comparison,
-dropping a returned error, forcing a branch — and runs the tests. A mutant is
-*detected* if any test fails or hangs. The score is the fraction detected.
+Norm keeps the existing tests unchanged and alters only the application code,
+one mutation at a time: flip a comparison, drop a returned error, or force a branch.
+After a passing baseline, test failures or timeouts count as detecting a mutation;
+compilation failures do not. The score is the fraction detected among scored mutants.
+
+This tests the tests: coverage checks whether code ran; mutation testing checks
+whether a behavioral mistake is noticed. A passing suite may lack a boundary case
+or a meaningful assertion, but the rewrite may also be behaviorally equivalent.
+
+### A boundary example
+
+```go
+// Original production code
+func Eligible(age int) bool { return age >= 18 }
+
+// Mutant: replace >= with >; the tests stay unchanged.
+func Eligible(age int) bool { return age > 18 }
+```
+
+Tests checking only `20 → true` and `16 → false` pass for both versions.
+Adding `18 → true` catches the boundary error. Unlike an equivalent rewrite,
+this mutant changes observable behavior, so it exposes a useful missing case.
 
 ### Why it exists
 
@@ -66,9 +85,10 @@ Rewrite the test to assert exact values at the boundaries, and — at the **same
 
 ### What you can do with it
 
-Gate on it in CI. It is the one reading where a low number always means
-something is genuinely wrong, and where the fix is always concrete: metron
-prints the assertion each surviving mutant proves is missing.
+Use it in CI to assess test effectiveness, particularly for AI-generated tests.
+Norm suggests behaviors and assertions to check for surviving mutants. Confirm
+that a mutation changes behavior before adding a case or strengthening an assertion.
+A low score is a signal to investigate, not proof that every survivor needs a new test.
 
 ---
 
@@ -167,7 +187,7 @@ Cognitive complexity **8**. Cyclomatic complexity for the same function is 5.
 ### One deliberate divergence
 
 The specification raises the nesting level inside an `else` body;
-[gocognit](https://github.com/uudashr/gocognit) does not. metron follows the
+[gocognit](https://github.com/uudashr/gocognit) does not. Norm follows the
 specification, because code inside an `else` really is one level deeper for the
 reader.
 
@@ -207,7 +227,7 @@ experience of reading them.
 `if err != nil { return err }` is 7.7% of every branch keyword in the Go
 standard library and more in application code. A Go reader takes it as one
 token, not a branch. Counting it in full makes every Go function look complex and
-the metric stops discriminating, so metron discounts it.
+the metric stops discriminating, so Norm discounts it.
 
 The discount is narrow on purpose. **All five conditions must hold**, or the `if`
 is a real branch and costs full price:
@@ -278,13 +298,17 @@ revision, so `--all` reports it as unmeasured rather than as zero.
 
 **Code that did not need to exist as written.**
 
-Three rules, summed. Reference range: **= 0**.
+Sum the applicable rules below. Reference range: **= 0**.
+The first three apply to Go; JS/TS and Python use body fingerprints for duplication.
+Fingerprints retain identifiers, literals, operators, and syntax structure while
+ignoring comments and layout; matching fingerprints do not prove semantic equivalence.
 
 | rule | fires when |
 |---|---|
 | `orphan` | no inbound call/reference/instantiate edge, **and** the identifier appears nowhere else in the source, **and** it is not a convention entry point (`main`, `init`, `Test*`, interface methods), **and** it is unexported or in a `main`/`internal` package |
 | `near-duplicate` | callee-set Jaccard ≥ 0.6 **and** name-word overlap ≥ 0.3 **and** different files **and** both sides call ≥ 3 things |
 | `reimplementation` | identical signature **and** name overlap ≥ 0.5 **and** different files **and** it never calls the original |
+| `exact-body-duplicate` | non-test functions in different files of the same language have identical body fingerprints, with at least 20 meaningful body tokens |
 
 ### Why the conditions are so specific
 
@@ -314,8 +338,10 @@ func orphan(xs []int) int { ... }
 
 ### What you can do with it
 
-Delete the unreachable. For duplicates, the finding names both sides and their
-locations, so you can pick which one survives.
+Findings locate the relevant code so reviewers can consider removing unused code
+or reusing an existing implementation. Name/signature similarity is only a candidate
+signal: confirm behavior and responsibilities before merging. Touched functions
+can also surface duplication that predates the change.
 
 ---
 
@@ -323,8 +349,10 @@ locations, so you can pick which one survives.
 
 **Code that does not fit what is already here.**
 
-Three rules, summed. Reference range: **= 0**. Needs a base revision — only
-edges the change *introduced* count.
+Three rules, summed. Reference range: **= 0**. Wrapper and dependency-direction
+checks need a base revision and consider newly introduced parsed calls. Comparison
+currently uses call names, so some changes between same-name targets are missed.
+Unresolved calls are not guessed; context/error sibling conventions apply only to Go.
 
 | rule | fires when |
 |---|---|
@@ -358,10 +386,10 @@ Conventional limit: **30**. Defined by Alberto Savoia in 2007 for Crap4j.
 Complexity is forgiven when the code is pinned and punished hard when it is not.
 Cyclomatic 10 scores 10 fully tested and 110 untested.
 
-### How metron differs from the original
+### How Norm differs from the original
 
 Crap4j feeds on line coverage — the number this whole tool exists to distrust.
-metron substitutes the **per-function mutation score**, so a function with 100%
+Norm substitutes the **per-function mutation score**, so a function with 100%
 coverage and no assertions stays dangerous instead of scoring as safe. That is
 exactly the case CRAP was invented to catch and the coverage-based version
 misses.
@@ -422,7 +450,7 @@ Numbers that do not earn a row but reach `--format json`:
 | `graph.orphans` / `duplicates` / `bypassed` / `layer_crossings` / `sibling_divergence` | the individual rule counts behind the two merged readings |
 | `graph.changed_symbols` | how many symbols were in scope |
 | `mutation.killed` / `survived` / `timed_out` / `not_covered` / `not_viable` / `skipped` | the raw tally |
-| `mutation.not_viable_rate` | a diagnostic on metron's own generator, not on your code — above 15% means its operator gating is underperforming |
+| `mutation.not_viable_rate` | a diagnostic on Norm's own generator, not on your code — above 15% means its operator gating is underperforming |
 
 Each axis also emits `funcs`: per-function records carrying path, function name,
 line, cyclomatic, cognitive, delta, and mutants/detected. That is what makes
@@ -466,7 +494,7 @@ it is the second sends you to write a test that already exists.
 | `TIMED_OUT` | the mutation hung the suite | yes, as detected — it *was* noticed |
 | `SURVIVED` | every test passed | yes, as undetected |
 | `NOT_COVERED` | pre-filtered as unreachable, never run | **yes** — see the mutation score section |
-| `NOT_VIABLE` | did not compile | no — metron's fault, not yours |
+| `NOT_VIABLE` | did not compile | no — Norm's fault, not yours |
 | `SKIPPED` | budget ran out first | no |
 | `ERRORED` | the harness failed | no, and never counted as detected |
 

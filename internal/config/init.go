@@ -22,7 +22,7 @@ func Starter(worstCognitive int, hasTests bool) string {
 	var b strings.Builder
 
 	b.WriteString("{\n")
-	b.WriteString("  // Written by `metron init`.\n")
+	b.WriteString("  // Written by `norm init`.\n")
 	b.WriteString("  //\n")
 	b.WriteString("  // maxCognitive starts at this repository's worst function today, so the\n")
 	b.WriteString("  // first run passes and every later one is a real signal. It is a ratchet:\n")
@@ -35,7 +35,7 @@ func Starter(worstCognitive int, hasTests bool) string {
 	if hasTests {
 		b.WriteString(",\n\n")
 		b.WriteString("  // Raise minScore as the suite improves. 0.70 is a starting point, not a\n")
-		b.WriteString("  // standard; run `metron --since main --axes all` to see where you are.\n")
+		b.WriteString("  // standard; run `norm --since main --axes all` to see where you are.\n")
 		b.WriteString("  \"mutation\": {\n    \"minScore\": 0.70,\n    \"budget\": \"10m\"\n  }")
 	}
 	b.WriteString("\n}\n")

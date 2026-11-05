@@ -3,7 +3,7 @@ package mutation
 import (
 	"fmt"
 
-	"github.com/yanmxa/metron/internal/axis"
+	"github.com/yanmxa/norm/internal/axis"
 )
 
 // Tally counts outcomes.
@@ -41,13 +41,13 @@ func (t Tally) Detected() int { return t.Killed + t.TimedOut }
 // Score is the headline reading, and NOT_COVERED is in its denominator.
 //
 // The alternative — killed over killed-plus-survived — measures whether the
-// tests you wrote are good tests. That is not the product question. metron
+// tests you wrote are good tests. That is not the product question. norm
 // grades a change, and the dominant failure mode in agent-written code is 200
 // new lines with 20 of them tested well: excluding uncovered mutants scores
 // that near 1.0, and it can be gamed outright by writing one excellent test for
 // one tiny function.
 //
-// NOT_VIABLE stays out. It is an artifact of metron's own generator, not a
+// NOT_VIABLE stays out. It is an artifact of norm's own generator, not a
 // property of the user's tests, and including it would move the score for
 // reasons having nothing to do with testing — a file with more string
 // concatenation would grade lower. It is reported separately as a diagnostic
@@ -78,7 +78,7 @@ func (t Tally) Reach() (float64, bool) {
 	return 1 - float64(t.NotCovered)/float64(d), true
 }
 
-// NotViableRate is a diagnostic on metron itself: a high rate means the
+// NotViableRate is a diagnostic on norm itself: a high rate means the
 // operator gating is underperforming, not that the code is bad.
 func (t Tally) NotViableRate() float64 {
 	total := t.Killed + t.Survived + t.TimedOut + t.NotCovered + t.NotViable

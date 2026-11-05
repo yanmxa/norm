@@ -52,7 +52,7 @@ func Build(ctx context.Context, root string) (*Index, error) {
 	if err != nil {
 		return nil, err
 	}
-	cacheDir := filepath.Join(root, ".metron")
+	cacheDir := filepath.Join(root, ".norm")
 	if info, statErr := os.Lstat(cacheDir); statErr == nil && (!info.IsDir() || info.Mode()&os.ModeSymlink != 0) {
 		return nil, fmt.Errorf("index directory must be a real directory: %s", cacheDir)
 	} else if statErr != nil && !errors.Is(statErr, fs.ErrNotExist) {
@@ -132,7 +132,7 @@ func excluded(path string) bool {
 	}
 	for _, part := range parts {
 		switch part {
-		case ".git", ".metron", ".codegraph", "node_modules", "vendor", ".venv", "venv", "__pycache__", "testdata":
+		case ".git", ".norm", ".codegraph", "node_modules", "vendor", ".venv", "venv", "__pycache__", "testdata":
 			return true
 		}
 	}

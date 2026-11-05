@@ -9,17 +9,17 @@ before:
     - python3 scripts/release-licenses.py
 
 builds:
-  - main: ./cmd/metron
-    binary: metron
+  - main: ./cmd/norm
+    binary: norm
     env: [CGO_ENABLED=1]
     goos: ["{{ .Env.GOOS }}"]
     goarch: ["{{ .Env.GOARCH }}"]
     ldflags:
-      - -s -w -X main.version={{.Version}} {{ .Env.METRON_LINK_FLAGS }}
+      - -s -w -X main.version={{.Version}} {{ .Env.NORM_LINK_FLAGS }}
 
 archives:
   # Stable names are required by install.sh.
-  - name_template: "metron_{{ .Os }}_{{ .Arch }}"
+  - name_template: "norm_{{ .Os }}_{{ .Arch }}"
     formats: [tar.gz]
     format_overrides:
       - goos: windows

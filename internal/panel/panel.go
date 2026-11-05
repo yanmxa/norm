@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/yanmxa/metron/internal/axis"
-	"github.com/yanmxa/metron/internal/target"
+	"github.com/yanmxa/norm/internal/axis"
+	"github.com/yanmxa/norm/internal/target"
 )
 
 type Panel struct {
@@ -36,7 +36,7 @@ func (p *Panel) Render() string {
 	if p.Target.WholeRepo {
 		label = p.Target.HeadDesc
 	}
-	fmt.Fprintf(&b, "\n  METRON  %s · %d files · %d+\n\n", label, len(p.Target.Files), added)
+	fmt.Fprintf(&b, "\n  NORM  %s · %d files · %d+\n\n", label, len(p.Target.Files), added)
 	_ = removed
 
 	rows := p.rows()
@@ -67,7 +67,7 @@ func (p *Panel) Render() string {
 	return b.String()
 }
 
-// unmeasuredFlag marks a reading metron could not take. It is neither a pass
+// unmeasuredFlag marks a reading norm could not take. It is neither a pass
 // nor a failure — the panel says so rather than letting it look like either.
 const unmeasuredFlag = "n/a"
 

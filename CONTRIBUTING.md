@@ -6,9 +6,9 @@ enforced by CI rather than by review.
 ## Getting set up
 
 ```bash
-git clone https://github.com/yanmxa/metron
-cd metron
-make check      # gofmt, vet, test, and metron on itself
+git clone https://github.com/yanmxa/norm
+cd norm
+make check      # gofmt, vet, test, and Norm
 ```
 
 Go 1.26 or newer. No other tooling is required to build or test.
@@ -21,11 +21,11 @@ Go 1.26 or newer. No other tooling is required to build or test.
 | vet | `go vet ./...` |
 | tests | `go test -race ./...` |
 | lint | `golangci-lint run` |
-| metron on itself | `make dogfood` |
+| Norm | `make dogfood` |
 
 ## The complexity ratchet
 
-metron measures itself, and the limit in [`metron.json`](metron.json) sits at
+Norm measures itself, and the limit in [`norm.json`](norm.json) sits at
 this repository's current worst function rather than at an aspirational number.
 
 Two rules follow from that:

@@ -2,7 +2,7 @@
 // reference range it is read against, and whether it falls outside.
 //
 // The lab-report framing is load-bearing. A reading with no reference range is
-// a number nobody can act on, and a reading metron could not take must say so
+// a number nobody can act on, and a reading norm could not take must say so
 // rather than quietly default to something that looks like a pass.
 package axis
 
@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/yanmxa/metron/internal/target"
+	"github.com/yanmxa/norm/internal/target"
 )
 
 type Status int
@@ -143,7 +143,7 @@ type Result struct {
 	Observations []Observation `json:"observations,omitempty"`
 	Notes        []string      `json:"notes,omitempty"` // e.g. "quarantined 1 flaky test"
 	// Diagnostics are numbers worth keeping but not worth a row: raw variants,
-	// counts already implied by a ratio, and metron's own health. They reach
+	// counts already implied by a ratio, and norm's own health. They reach
 	// --format json and nothing else.
 	Diagnostics map[string]float64 `json:"diagnostics,omitempty"`
 	// Funcs is the per-function detail behind the readings, for combining

@@ -76,7 +76,7 @@ parallelism safe — lowering the worker count is not.**
 
 ## The denominator
 
-metron reports three numbers. The headline, and the gate, counts uncovered
+Norm reports three numbers. The headline, and the gate, counts uncovered
 mutants:
 
 ```
@@ -88,19 +88,19 @@ mutants:
   reach    = 1 − NOT_COVERED / (KILLED + TIMED_OUT + SURVIVED + NOT_COVERED)
 ```
 
-**Why NOT_COVERED belongs in the denominator.** metron grades a change, and the
+**Why NOT_COVERED belongs in the denominator.** Norm grades a change, and the
 dominant failure in agent-written code is 200 new lines with 20 of them tested
 well. Reporting strength alone scores that near 1.0 — a catastrophic false pass,
 and one gamed outright by writing a single excellent test for a single tiny
 function. Strength measures "are the tests you wrote good tests". The product
 question is "is this change held up by tests". Only the second deserves a gate.
 
-**Why NOT_VIABLE stays out.** It is an artifact of metron's own generator, not a
+**Why NOT_VIABLE stays out.** It is an artifact of Norm's own generator, not a
 property of the user's tests. Including it makes the score depend on how good the
 type gating is, and moves it in the wrong direction: a file with more string
 concatenation would grade lower for reasons unrelated to testing. Measured on
 `command.go`, including non-viables moves the score from 68.3% to 66.8% as pure
-generator noise. It is reported separately, and metron warns about itself when
+generator noise. It is reported separately, and Norm warns about itself when
 the rate exceeds 15%.
 
 **TIMED_OUT counts as detected.** An infinite loop introduced by a mutation was
@@ -242,7 +242,7 @@ Worker sweep on the toy module, 12 mutants:
 
 **Throughput saturates at two workers and degrades past it**, because `go test`
 is already internally parallel and one invocation nearly saturates the machine.
-metron uses `clamp(NumCPU/4, 2, 4)` with `-p=2 -parallel=n` on the child.
+Norm uses `clamp(NumCPU/4, 2, 4)` with `-p=2 -parallel=n` on the child.
 
 **Per-mutant timeouts are derived, never defaulted.** One runaway mutant at a
 fixed 120s timeout consumed 120.8s of a 354s run — 34% of the wall clock. Using

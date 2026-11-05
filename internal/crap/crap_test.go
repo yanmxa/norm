@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/yanmxa/metron/internal/axis"
+	"github.com/yanmxa/norm/internal/axis"
 )
 
 func TestComplexityIsForgivenWhenTested(t *testing.T) {

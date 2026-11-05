@@ -1,4 +1,4 @@
-// Command metron measures a change and prints a lab report.
+// Command norm measures a change and prints a lab report.
 package main
 
 import (
@@ -13,20 +13,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yanmxa/metron/internal/axis"
-	"github.com/yanmxa/metron/internal/axis/complexity"
-	"github.com/yanmxa/metron/internal/axis/graph"
-	"github.com/yanmxa/metron/internal/axis/mutation"
-	"github.com/yanmxa/metron/internal/config"
-	"github.com/yanmxa/metron/internal/crap"
-	"github.com/yanmxa/metron/internal/gate"
-	"github.com/yanmxa/metron/internal/panel"
-	"github.com/yanmxa/metron/internal/target"
+	"github.com/yanmxa/norm/internal/axis"
+	"github.com/yanmxa/norm/internal/axis/complexity"
+	"github.com/yanmxa/norm/internal/axis/graph"
+	"github.com/yanmxa/norm/internal/axis/mutation"
+	"github.com/yanmxa/norm/internal/config"
+	"github.com/yanmxa/norm/internal/crap"
+	"github.com/yanmxa/norm/internal/gate"
+	"github.com/yanmxa/norm/internal/panel"
+	"github.com/yanmxa/norm/internal/target"
 )
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "metron: %v\n", err)
+		fmt.Fprintf(os.Stderr, "norm: %v\n", err)
 		os.Exit(gate.ExitError)
 	}
 }
@@ -36,7 +36,7 @@ func run() error {
 		since    = flag.String("since", "main", "base ref to measure the change against")
 		format   = flag.String("format", "table", "output format: table | json")
 		failOn   = flag.String("fail-on", "headline", "what makes the exit code non-zero: headline | any | none")
-		dir      = flag.String("C", ".", "run as if metron were started in this directory")
+		dir      = flag.String("C", ".", "run as if norm were started in this directory")
 		axesFlag = flag.String("axes", "complexity,graph", "which axes to run: complexity, graph, mutation (mutation runs your tests and takes longer)")
 		budget   = flag.Duration("budget", 5*time.Minute, "wall-clock budget for the mutation axis")
 		paranoid = flag.Bool("paranoid", false, "re-run every killed mutant sequentially before believing it")
@@ -209,7 +209,7 @@ func buildAxes(spec string, cfg *config.File, budget time.Duration,
 	return out, nil
 }
 
-// initConfig writes a starter metron.json calibrated to this repository.
+// initConfig writes a starter norm.json calibrated to this repository.
 //
 // It measures first. A config full of aspirational numbers fails on the first
 // run with nothing to blame, and the tool gets switched off before it has said
@@ -245,7 +245,7 @@ func initConfig(ctx context.Context, dir string) error {
 		fmt.Printf("  complexity limit %d — today's worst, so the first run passes\n", limit)
 	}
 	fmt.Printf("  delta 0 — none of it may grow\n\n")
-	fmt.Printf("Next: metron --since main --axes all\n")
+	fmt.Printf("Next: norm --since main --axes all\n")
 	return nil
 }
 
@@ -264,12 +264,12 @@ func ctxFor() context.Context { return context.Background() }
 // `go install` recorded, so it is never simply "unknown" in the common cases.
 func versionString() string {
 	if version != "" {
-		return "metron " + version
+		return "norm " + version
 	}
 	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
-		return "metron " + info.Main.Version
+		return "norm " + info.Main.Version
 	}
-	return "metron (devel)"
+	return "norm (devel)"
 }
 
 // version is set at release time with -ldflags "-X main.version=vX.Y.Z".
@@ -283,7 +283,7 @@ func isTerminal(f *os.File) bool {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `metron — measure code, then say what to do about it
+	fmt.Fprint(os.Stderr, `norm — measure code, then say what to do about it
 
 Seven readings against explicit reference ranges: whether the tests actually
 hold the code up (mutation), how hard it is to read and extend (complexity),
@@ -291,14 +291,14 @@ and whether it duplicates or steps around what already exists (graph). Every
 finding carries the change that closes it.
 
 Usage:
-  metron [flags]
-  metron init          write a metron.json calibrated to this repository
+  norm [flags]
+  norm init          write a norm.json calibrated to this repository
 
 Examples:
-  metron --since main                    measure a change, fast axes only
-  metron --since main --axes all         add mutation; runs your test suite
-  metron --all --axes complexity,graph   measure the whole repository
-  metron --since main --format json      machine-readable, for an agent loop
+  norm --since main                    measure a change, fast axes only
+  norm --since main --axes all         add mutation; runs your test suite
+  norm --all --axes complexity,graph   measure the whole repository
+  norm --since main --format json      machine-readable, for an agent loop
 
 Flags:
 `)

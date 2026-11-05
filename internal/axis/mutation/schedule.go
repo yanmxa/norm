@@ -141,7 +141,7 @@ func runOne(ctx context.Context, r *Runner, m Mutant, plan Planner) Mutant {
 		return m
 	}
 
-	dir, err := os.MkdirTemp("", "metron-mutant-*")
+	dir, err := os.MkdirTemp("", "norm-mutant-*")
 	if err != nil {
 		m.Outcome, m.Detail = Errored, err.Error()
 		return m

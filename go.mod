@@ -1,4 +1,4 @@
-module github.com/yanmxa/metron
+module github.com/yanmxa/norm
 
 go 1.26
 

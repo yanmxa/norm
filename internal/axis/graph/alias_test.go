@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/yanmxa/metron/internal/codeindex"
+	"github.com/yanmxa/norm/internal/codeindex"
 )
 
 func TestNamedImportAliasesCompareCanonicalCallees(t *testing.T) {

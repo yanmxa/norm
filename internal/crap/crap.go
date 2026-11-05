@@ -8,7 +8,7 @@
 //
 //	https://www.artima.com/weblogs/viewpost.jsp?thread=210575
 //
-// metron departs from the original in one place, and it matters. Crap4j feeds
+// norm departs from the original in one place, and it matters. Crap4j feeds
 // on line coverage — the very number this tool exists to distrust. A function
 // with 100% coverage and no assertions scores as safe under the original and
 // stays dangerous here, because the coverage term is the mutation score
@@ -24,7 +24,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/yanmxa/metron/internal/axis"
+	"github.com/yanmxa/norm/internal/axis"
 )
 
 // Threshold is the conventional line above which Crap4j calls a method crappy.

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yanmxa/metron/internal/axis"
+	"github.com/yanmxa/norm/internal/axis"
 )
 
 // Progress renders what an axis is doing while it does it.

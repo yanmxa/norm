@@ -1,5 +1,5 @@
 {
-  // metron measures itself in CI. These are the ranges it is held to.
+  // Norm measures itself in CI. These are the ranges it is held to.
   //
   // maxCognitive is a ratchet, not a target. It sits at this repository's
   // current worst function, so today's complexity is tolerated and none of it

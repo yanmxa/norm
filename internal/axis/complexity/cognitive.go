@@ -35,7 +35,7 @@ type Score struct {
 // agree exactly. The five that differ are one deliberate divergence — the
 // specification raises the nesting level inside an `else` body and gocognit
 // does not. Code inside an else really is one level deeper for the reader, so
-// metron follows the specification here.
+// norm follows the specification here.
 //
 // The adjusted score additionally skips Go's canonical `if err != nil { return
 // ... }`. A Go reader parses that as a single token, not as a branch. Measured
@@ -427,7 +427,7 @@ func paramCount(fn *ast.FuncDecl) int {
 }
 
 // cyclomatic is the classic count: one path, plus one per decision point. It
-// exists so metron's numbers can be compared against gocyclo and every other
+// exists so norm's numbers can be compared against gocyclo and every other
 // tool that reports it — not because it is the better metric.
 func cyclomatic(fn *ast.FuncDecl) int {
 	c := 1

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/yanmxa/metron/internal/codeindex"
+	"github.com/yanmxa/norm/internal/codeindex"
 )
 
 // FromIndex adapts the native, repository-local index to graph rule adjacency lists.

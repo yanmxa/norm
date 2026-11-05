@@ -1,7 +1,7 @@
 // Package target resolves "what changed" — the input every axis measures against.
 //
 // A Target is always a local working tree plus a base ref. That is the whole
-// premise of metron: it runs your tests and reads your index, so it needs the
+// premise of norm: it runs your tests and reads your index, so it needs the
 // code on disk, not a diff fetched over HTTP.
 package target
 
@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yanmxa/metron/internal/codeindex"
+	"github.com/yanmxa/norm/internal/codeindex"
 )
 
 // LineRange is a 1-based inclusive span of lines in the NEW version of a file.

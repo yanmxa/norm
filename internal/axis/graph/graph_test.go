@@ -43,7 +43,7 @@ func fn(file, name string) Node {
 }
 
 func TestExportedIsDecidedFromTheNameNotTheIndex(t *testing.T) {
-	// The index reports is_exported = 0 for exported Go methods, so metron
+	// The index reports is_exported = 0 for exported Go methods, so norm
 	// decides the way the language does.
 	m := Node{Name: "GenBashCompletion", Qualified: "Command::GenBashCompletion", Kind: "method"}
 	if !m.Exported() {

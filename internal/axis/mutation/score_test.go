@@ -11,7 +11,7 @@ func tally(killed, survived, timedOut, notCovered, notViable int) Tally {
 }
 
 func TestUncoveredMutantsCountAgainstTheScore(t *testing.T) {
-	// The failure mode metron exists to catch: a large change with one small
+	// The failure mode norm exists to catch: a large change with one small
 	// well-tested corner. Excluding uncovered mutants scores that near-perfect
 	// and can be gamed by writing one excellent test for one tiny function.
 	partial := tally(10, 0, 0, 90, 0)
@@ -57,7 +57,7 @@ func TestStrengthAndReachSeparateTheTwoFailureModes(t *testing.T) {
 }
 
 func TestNonViableMutantsStayOutOfTheDenominator(t *testing.T) {
-	// They are an artifact of metron's generator, not a property of the tests.
+	// They are an artifact of norm's generator, not a property of the tests.
 	// Counting them would make a file with more string concatenation grade
 	// lower for reasons having nothing to do with testing.
 	clean := tally(7, 3, 0, 0, 0)

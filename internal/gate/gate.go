@@ -1,7 +1,7 @@
 // Package gate turns readings into an exit code.
 package gate
 
-import "github.com/yanmxa/metron/internal/axis"
+import "github.com/yanmxa/norm/internal/axis"
 
 type Policy string
 

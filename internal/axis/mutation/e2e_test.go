@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yanmxa/metron/internal/axis"
-	"github.com/yanmxa/metron/internal/axis/mutation"
-	"github.com/yanmxa/metron/internal/target"
+	"github.com/yanmxa/norm/internal/axis"
+	"github.com/yanmxa/norm/internal/axis/mutation"
+	"github.com/yanmxa/norm/internal/target"
 )
 
 const source = `package calc

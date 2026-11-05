@@ -267,7 +267,7 @@ func g() {}`)
 
 func TestElseBodyRaisesNestingPerTheSpec(t *testing.T) {
 	// SonarSource increments the nesting level for an else body; gocognit does
-	// not. This is metron's one systematic divergence and it is deliberate —
+	// not. This is norm's one systematic divergence and it is deliberate —
 	// code inside an else really is one level deeper for the reader.
 	got := scoreOf(t, `
 func f(a, b bool) {

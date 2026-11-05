@@ -5,7 +5,7 @@
 
 ## Checklist
 
-- [ ] `make check` passes (gofmt, vet, race tests, and metron on itself)
+- [ ] `make check` passes (gofmt, vet, race tests, and norm on itself)
 - [ ] New behaviour has a test whose name states the invariant
 - [ ] If this fixes something that went wrong once, a comment says so
-- [ ] `metron.json` thresholds are unchanged, or lowered — never raised
+- [ ] `norm.json` thresholds are unchanged, or lowered — never raised

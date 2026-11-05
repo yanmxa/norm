@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-const storeDir = ".metron"
+const storeDir = ".norm"
 
 // Manifest describes the run a set of cached results belongs to.
 //

@@ -27,7 +27,7 @@ jobs:
       GOARCH: ${{ matrix.goarch }}
       # No glibc dependency on Linux; macOS uses the system SDK/libSystem.
       # MinGW also links statically so the Windows zip needs no compiler DLLs.
-      METRON_LINK_FLAGS: ${{ matrix.goos != 'darwin' && '-linkmode external -extldflags -static' || '' }}
+      NORM_LINK_FLAGS: ${{ matrix.goos != 'darwin' && '-linkmode external -extldflags -static' || '' }}
     steps:
       - uses: actions/checkout@v4
         with: {fetch-depth: 0}
@@ -64,20 +64,20 @@ jobs:
         run: |
           mkdir smoke
           if [ "$GOOS" = windows ]; then
-            unzip "dist/metron_${GOOS}_${GOARCH}.zip" -d smoke
-            ./smoke/metron.exe --version
+            unzip "dist/norm_${GOOS}_${GOARCH}.zip" -d smoke
+            ./smoke/norm.exe --version
           else
-            tar -xzf "dist/metron_${GOOS}_${GOARCH}.tar.gz" -C smoke
-            ./smoke/metron --version
+            tar -xzf "dist/norm_${GOOS}_${GOARCH}.tar.gz" -C smoke
+            ./smoke/norm --version
           fi
           test -f smoke/LICENSE
           test -d smoke/licenses
       - uses: actions/upload-artifact@v4
         with:
-          name: metron-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: norm-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
-            dist/metron_*.tar.gz
-            dist/metron_*.zip
+            dist/norm_*.tar.gz
+            dist/norm_*.zip
           if-no-files-found: error
 
   publish:
@@ -88,7 +88,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: metron-*
+          pattern: norm-*
           merge-multiple: true
           path: dist
       - name: checksum and publish all native archives
@@ -100,5 +100,5 @@ jobs:
         run: |
           # Publish only after all five native builds and smoke tests pass.
           test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 5
-          (cd dist && sha256sum metron_*.tar.gz metron_*.zip > checksums.txt)
+          (cd dist && sha256sum norm_*.tar.gz norm_*.zip > checksums.txt)
           gh release create "$RELEASE_TAG" dist/* --verify-tag --generate-notes

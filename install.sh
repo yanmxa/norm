@@ -1,16 +1,16 @@
 #!/bin/sh
-# Install metron, and optionally its agent skill.
+# Install norm, and optionally its agent skill.
 #
-#   curl -fsSL https://raw.githubusercontent.com/yanmxa/metron/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/yanmxa/norm/main/install.sh | sh
 #
 # The skill is one document. Every coding assistant reads instructions from a
 # different path in a different wrapper, so this writes the same body wherever
 # the one you use will look for it.
 set -eu
 
-REPO="yanmxa/metron"
+REPO="yanmxa/norm"
 RAW="https://raw.githubusercontent.com/$REPO/main"
-BIN_DIR="${METRON_BIN_DIR:-}"
+BIN_DIR="${NORM_BIN_DIR:-}"
 AGENT=""
 DO_BIN=1
 DO_SKILL=0
@@ -22,7 +22,7 @@ die()  { printf 'error: %s\n' "$*" >&2; exit 1; }
 
 usage() {
 	cat <<'USAGE'
-metron installer
+norm installer
 
   install.sh [options]
 
@@ -35,10 +35,10 @@ Options:
   -h, --help        this text
 
 Agents:
-  claude      .claude/skills/metron/SKILL.md
-  cursor      .cursor/rules/metron.mdc
+  claude      .claude/skills/norm/SKILL.md
+  cursor      .cursor/rules/norm.mdc
   copilot     .github/copilot-instructions.md
-  windsurf    .windsurf/rules/metron.md
+  windsurf    .windsurf/rules/norm.md
   agents      AGENTS.md          (Codex CLI, Amp, and anything else reading it)
   all         every one of the above
   auto        whichever are already present  (default)
@@ -71,11 +71,11 @@ detect_platform() {
 	case "$arch" in
 		x86_64|amd64) arch=amd64 ;;
 		arm64|aarch64) arch=arm64 ;;
-		*) die "unsupported architecture: $arch. Build from source: go install github.com/$REPO/cmd/metron@latest" ;;
+		*) die "unsupported architecture: $arch. Build from source: CGO_ENABLED=1 go install github.com/$REPO/cmd/norm@main" ;;
 	esac
 	case "$os" in
 		linux|darwin) ;;
-		*) die "unsupported OS: $os. Build from source: go install github.com/$REPO/cmd/metron@latest" ;;
+		*) die "unsupported OS: $os. Build from source: CGO_ENABLED=1 go install github.com/$REPO/cmd/norm@main" ;;
 	esac
 	printf '%s_%s' "$os" "$arch"
 }
@@ -105,31 +105,33 @@ install_binary() {
 	mkdir -p "$dir"
 
 	if [ "$VERSION" = latest ]; then
-		url="https://github.com/$REPO/releases/latest/download/metron_${platform}.tar.gz"
+		url="https://github.com/$REPO/releases/latest/download/norm_${platform}.tar.gz"
 	else
-		url="https://github.com/$REPO/releases/download/${VERSION}/metron_${platform}.tar.gz"
+		url="https://github.com/$REPO/releases/download/${VERSION}/norm_${platform}.tar.gz"
 	fi
 
 	tmp=$(mktemp -d)
 	trap 'rm -rf "$tmp"' EXIT
 
-	say "downloading metron ($platform)..."
-	if ! fetch "$url" "$tmp/metron.tar.gz" 2>/dev/null; then
+	say "downloading norm ($platform)..."
+	if ! fetch "$url" "$tmp/norm.tar.gz" 2>/dev/null; then
 		warn "no release binary for $platform ($VERSION)."
 		if command -v go >/dev/null 2>&1; then
-			say "building from source instead..."
-			GOBIN="$dir" go install "github.com/$REPO/cmd/metron@latest"
-			say "installed $dir/metron"
+			source_ref="$VERSION"
+			[ "$source_ref" != latest ] || source_ref=main
+			say "building $source_ref from source (requires a C compiler)..."
+			CGO_ENABLED=1 GOBIN="$dir" go install "github.com/$REPO/cmd/norm@$source_ref"
+			say "installed $dir/norm"
 			return
 		fi
-		die "install Go and retry, or download a release from https://github.com/$REPO/releases"
+		die "install Go and a C compiler and retry, or download a release from https://github.com/$REPO/releases"
 	fi
 
-	tar -xzf "$tmp/metron.tar.gz" -C "$tmp"
-	[ -f "$tmp/metron" ] || die "archive did not contain a metron binary"
-	mv "$tmp/metron" "$dir/metron"
-	chmod +x "$dir/metron"
-	say "installed $dir/metron"
+	tar -xzf "$tmp/norm.tar.gz" -C "$tmp"
+	[ -f "$tmp/norm" ] || die "archive did not contain a norm binary"
+	mv "$tmp/norm" "$dir/norm"
+	chmod +x "$dir/norm"
+	say "installed $dir/norm"
 
 	case ":$PATH:" in
 		*":$dir:"*) ;;
@@ -139,13 +141,13 @@ install_binary() {
 
 # --- skill -----------------------------------------------------------------
 
-DESC="Measure code with metron: graph redundancy and consistency for Go, JavaScript/TypeScript and Python, plus Go mutation score and cognitive complexity. Use after changing code or reviewing code health, then act on the evidence each finding provides."
+DESC="Measure code with Norm: graph redundancy and consistency for Go, JavaScript/TypeScript and Python, plus Go mutation score and cognitive complexity. Use after changing code or reviewing code health, then act on the evidence each finding provides."
 
 body() {
-	if [ -f agent/metron.md ]; then
-		cat agent/metron.md
+	if [ -f agent/norm.md ]; then
+		cat agent/norm.md
 	else
-		fetch "$RAW/agent/metron.md" /dev/stdout
+		fetch "$RAW/agent/norm.md" /dev/stdout
 	fi
 }
 
@@ -157,18 +159,18 @@ write_file() {
 }
 
 install_claude() {
-	{ printf -- '---\nname: metron\ndescription: %s\n---\n\n' "$DESC"; body; } |
-		write_file .claude/skills/metron/SKILL.md
+	{ printf -- '---\nname: norm\ndescription: %s\n---\n\n' "$DESC"; body; } |
+		write_file .claude/skills/norm/SKILL.md
 }
 
 install_cursor() {
 	{ printf -- '---\ndescription: %s\nglobs: ["**/*.go", "**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.py"]\nalwaysApply: false\n---\n\n' "$DESC"; body; } |
-		write_file .cursor/rules/metron.mdc
+		write_file .cursor/rules/norm.mdc
 }
 
 install_windsurf() {
 	{ printf -- '---\ntrigger: model_decision\ndescription: %s\n---\n\n' "$DESC"; body; } |
-		write_file .windsurf/rules/metron.md
+		write_file .windsurf/rules/norm.md
 }
 
 install_copilot() {
@@ -176,10 +178,10 @@ install_copilot() {
 }
 
 # AGENTS.md is shared with whatever else the project put there, so replace only
-# metron's own section rather than the file.
+# norm's own section rather than the file.
 install_agents() {
-	marker_start="<!-- metron:start -->"
-	marker_end="<!-- metron:end -->"
+	marker_start="<!-- norm:start -->"
+	marker_end="<!-- norm:end -->"
 	tmpf=$(mktemp)
 
 	if [ -f AGENTS.md ]; then
@@ -191,7 +193,7 @@ install_agents() {
 
 	{ printf '%s\n' "$marker_start"; body; printf '%s\n' "$marker_end"; } >> "$tmpf"
 	mv "$tmpf" AGENTS.md
-	say "  wrote AGENTS.md (metron section)"
+	say "  wrote AGENTS.md (norm section)"
 }
 
 detect_agents() {
@@ -237,4 +239,4 @@ install_skill() {
 [ "$DO_SKILL" = 1 ] && install_skill
 
 say ""
-say "next: metron --since main --axes all"
+say "next: norm --since main --axes all"

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yanmxa/metron/internal/axis"
-	"github.com/yanmxa/metron/internal/target"
+	"github.com/yanmxa/norm/internal/axis"
+	"github.com/yanmxa/norm/internal/target"
 )
 
 func ref(v float64) *float64 { return &v }
@@ -119,8 +119,8 @@ func TestFindingsShowTheChangeNoTestNoticed(t *testing.T) {
 func TestConfigSourceIsNamedSoASurprisingRangeCanBeTraced(t *testing.T) {
 	out := render(t, []*axis.Result{{AxisID: "x", Measures: []axis.Measure{
 		{Label: "a", Value: 0, RefHigh: ref(1)},
-	}}}, func(p *Panel) { p.ConfigPath = "/repo/metron.json" })
-	if !strings.Contains(out, "metron.json") {
+	}}}, func(p *Panel) { p.ConfigPath = "/repo/norm.json" })
+	if !strings.Contains(out, "norm.json") {
 		t.Errorf("the config source should be named:\n%s", out)
 	}
 }

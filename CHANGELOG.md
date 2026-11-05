@@ -34,7 +34,7 @@ First tagged release.
 
 - `--all` measures a whole repository. Readings needing a base revision report as
   unmeasured rather than as comfortable zeros.
-- `metron init` writes a config calibrated to the repository's current worst
+- `norm init` writes a config calibrated to the repository's current worst
   function, so the first run passes and later ones are signal.
 - Verdicts are content-addressed and cached; an interrupted run resumes.
 - A partial run never fails a build, and a suite too slow to sample is refused

@@ -13,9 +13,9 @@ import (
 
 	"golang.org/x/tools/go/packages"
 
-	"github.com/yanmxa/metron/internal/axis"
-	"github.com/yanmxa/metron/internal/gopkg"
-	"github.com/yanmxa/metron/internal/target"
+	"github.com/yanmxa/norm/internal/axis"
+	"github.com/yanmxa/norm/internal/gopkg"
+	"github.com/yanmxa/norm/internal/target"
 )
 
 type Axis struct{ cfg Config }

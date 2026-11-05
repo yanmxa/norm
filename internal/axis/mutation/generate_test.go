@@ -228,7 +228,7 @@ func f(a, b int) bool {
 
 func TestSurvivorsSayWhichCaseIsMissing(t *testing.T) {
 	// A surviving mutant is a specification for the absent assertion. Which one
-	// follows from the operator and its operands, so metron can state it rather
+	// follows from the operator and its operands, so norm can state it rather
 	// than leaving an agent to infer it.
 	//
 	// Phrased as what to assert, never as a claim about what the tests do: a

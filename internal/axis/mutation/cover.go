@@ -97,7 +97,7 @@ func (ci *CoverIndex) Covered(file string, line, col int) (covered, ok bool) {
 }
 
 // FuncCovered reports whether any block inside a function's line span ran. It
-// is the conservative fallback: it can only make metron run a mutant it might
+// is the conservative fallback: it can only make norm run a mutant it might
 // have skipped, never silently drop one.
 func (ci *CoverIndex) FuncCovered(file string, startLine, endLine int) bool {
 	for _, b := range ci.blocks[file] {

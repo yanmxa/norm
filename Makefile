@@ -1,5 +1,5 @@
 GO      ?= go
-BIN     ?= bin/metron
+BIN     ?= bin/norm
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo devel)
 
 # Native Tree-sitter grammars are compiled into the executable. A native C
@@ -11,7 +11,7 @@ export CGO_ENABLED := 1
 package: ## Package the native target (requires GoReleaser v2, Python, and a C compiler)
 	@config=$$(mktemp); trap 'rm -f "$$config"' EXIT; \
 	  python3 scripts/native-release-config.py "$$config" && \
-	  METRON_LINK_FLAGS="$$(case $$($(GO) env GOHOSTOS) in linux|windows) printf '%s' '-linkmode external -extldflags -static';; esac)" \
+	  NORM_LINK_FLAGS="$$(case $$($(GO) env GOHOSTOS) in linux|windows) printf '%s' '-linkmode external -extldflags -static';; esac)" \
 	  goreleaser release --snapshot --clean --skip=publish,announce --config="$$config"
 
 .PHONY: help
@@ -21,7 +21,7 @@ help: ## Show this help
 
 .PHONY: build
 build: ## Build the binary into bin/
-	$(GO) build -ldflags "-X main.version=$(VERSION)" -o $(BIN) ./cmd/metron
+	$(GO) build -ldflags "-X main.version=$(VERSION)" -o $(BIN) ./cmd/norm
 
 .PHONY: test
 test: ## Run the tests with the race detector
@@ -48,16 +48,16 @@ check: ## Everything CI runs
 
 .PHONY: clean
 clean: ## Remove build output and caches
-	rm -rf bin/ .metron/
+	rm -rf bin/ .norm/
 
 .PHONY: skill
-skill: ## Regenerate the in-repo agent skill from agent/metron.md
+skill: ## Regenerate the in-repo agent skill from agent/norm.md
 	@./install.sh --skill-only --agent claude
 
 .PHONY: skill-check
-skill-check: ## Fail if the generated skill has drifted from agent/metron.md
-	@cp .claude/skills/metron/SKILL.md /tmp/metron-skill-before
+skill-check: ## Fail if the generated skill has drifted from agent/norm.md
+	@cp .claude/skills/norm/SKILL.md /tmp/norm-skill-before
 	@./install.sh --skill-only --agent claude >/dev/null
-	@diff -q /tmp/metron-skill-before .claude/skills/metron/SKILL.md >/dev/null || { \
+	@diff -q /tmp/norm-skill-before .claude/skills/norm/SKILL.md >/dev/null || { \
 	  echo "the checked-in skill is out of date; run: make skill"; exit 1; }
-	@echo "skill is in sync with agent/metron.md"
+	@echo "skill is in sync with agent/norm.md"

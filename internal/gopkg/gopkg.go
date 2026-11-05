@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// Package is the slice of `go list -json` metadata metron needs.
+// Package is the slice of `go list -json` metadata norm needs.
 type Package struct {
 	ImportPath   string
 	Dir          string

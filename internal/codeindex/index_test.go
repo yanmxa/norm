@@ -146,7 +146,7 @@ func TestImportVisibilityAndLexicalScope(t *testing.T) {
 func TestIndexRejectsSymlinkCache(t *testing.T) {
 	root, outside := t.TempDir(), t.TempDir()
 	put(t, root, "main.py", "def run():\n    return 1\n")
-	if err := os.Symlink(outside, filepath.Join(root, ".metron")); err != nil {
+	if err := os.Symlink(outside, filepath.Join(root, ".norm")); err != nil {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
 	if _, err := Build(context.Background(), root); err == nil {

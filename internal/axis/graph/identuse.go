@@ -121,7 +121,7 @@ func collect(f *ast.File, iu *IdentUse) {
 
 func skipDir(name string) bool {
 	switch name {
-	case ".git", "vendor", "node_modules", "testdata", ".codegraph", ".metron":
+	case ".git", "vendor", "node_modules", "testdata", ".codegraph", ".norm":
 		return true
 	}
 	return strings.HasPrefix(name, ".")

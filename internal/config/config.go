@@ -19,8 +19,8 @@ import (
 	"time"
 )
 
-// Name is the file metron looks for at the repository root.
-const Name = "metron.json"
+// Name is the file norm looks for at the repository root.
+const Name = "norm.json"
 
 // File is the on-disk shape. Every field is optional; anything absent keeps the
 // built-in default, so a config only has to say what differs.
@@ -53,7 +53,7 @@ type GraphSection struct {
 	MinSiblings *int `json:"minSiblings,omitempty"`
 }
 
-// Load reads metron.json from root. A missing file is not an error — the
+// Load reads norm.json from root. A missing file is not an error — the
 // defaults are a complete configuration on their own.
 func Load(root string) (*File, string, error) {
 	path := filepath.Join(root, Name)

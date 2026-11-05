@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yanmxa/metron/internal/axis"
-	"github.com/yanmxa/metron/internal/axis/complexity"
-	"github.com/yanmxa/metron/internal/target"
+	"github.com/yanmxa/norm/internal/axis"
+	"github.com/yanmxa/norm/internal/axis/complexity"
+	"github.com/yanmxa/norm/internal/target"
 )
 
 // repo builds a throwaway git repository, commits base, then applies head.

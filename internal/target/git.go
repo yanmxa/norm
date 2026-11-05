@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/yanmxa/metron/internal/codeindex"
+	"github.com/yanmxa/norm/internal/codeindex"
 )
 
 // Resolve builds a Target for everything that changed on this branch relative

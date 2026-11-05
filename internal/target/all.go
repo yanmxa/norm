@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yanmxa/metron/internal/codeindex"
+	"github.com/yanmxa/norm/internal/codeindex"
 )
 
 // ResolveAll builds a Target covering every supported source file in the repository rather
@@ -118,7 +118,7 @@ func countFileLines(path string) (int, error) {
 
 func skipDir(name string) bool {
 	switch name {
-	case ".git", "vendor", "node_modules", "testdata", ".codegraph", ".metron", "venv", "__pycache__":
+	case ".git", "vendor", "node_modules", "testdata", ".codegraph", ".norm", "venv", "__pycache__":
 		return true
 	}
 	return strings.HasPrefix(name, ".")

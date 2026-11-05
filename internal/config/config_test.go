@@ -32,7 +32,7 @@ func TestNoConfigIsAValidConfig(t *testing.T) {
 
 func TestOnlyStatedFieldsAreSet(t *testing.T) {
 	// A config says what differs; everything else keeps the built-in default,
-	// so upgrading metron does not silently freeze old defaults in place.
+	// so upgrading norm does not silently freeze old defaults in place.
 	f, path, err := Load(write(t, `{"complexity": {"maxCognitive": 25}}`))
 	if err != nil {
 		t.Fatal(err)
