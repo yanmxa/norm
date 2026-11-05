@@ -9,6 +9,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
+	"strings"
+
+	"github.com/yanmxa/metron/internal/codeindex"
 )
 
 // LineRange is a 1-based inclusive span of lines in the NEW version of a file.
@@ -93,6 +96,31 @@ func (t *Target) GoFiles() []ChangedFile {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
 	return out
+}
+
+// SupportedFiles returns non-deleted source files supported by the native index.
+func (t *Target) SupportedFiles() []ChangedFile {
+	var out []ChangedFile
+	for _, f := range t.Files {
+		if f.Status != Deleted && codeindex.Supported(f.Path) && !excludedPath(f.Path) {
+			out = append(out, f)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
+	return out
+}
+
+func excludedPath(path string) bool {
+	parts := strings.Split(filepath.ToSlash(path), "/")
+	if len(parts) > 1 && (parts[0] == "build" || parts[0] == "dist" || parts[0] == "target") {
+		return true
+	}
+	for _, p := range parts[:len(parts)-1] {
+		if skipDir(p) {
+			return true
+		}
+	}
+	return false
 }
 
 func (t *Target) Describe() string {

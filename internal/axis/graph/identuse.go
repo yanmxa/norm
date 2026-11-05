@@ -13,13 +13,8 @@ import (
 // IdentUse counts how often each identifier appears in the repository's Go
 // source, separately from how often it is declared.
 //
-// This exists to keep the orphan rule honest. CodeGraph records a `calls` edge
-// when a function is invoked, but Go code passes functions around as values
-// constantly — `return defaultUsageFunc`, `cmd.Run = handler`, a func in a
-// struct literal — and none of those produce a call edge. Measured on cobra,
-// every one of the three symbols the graph alone called orphaned was in fact
-// used exactly that way. Cross-checking against real identifier occurrences
-// removed all three.
+// This keeps the orphan rule conservative: passing a function as a value does
+// not produce a call edge, but still counts as a use of its identifier.
 //
 // The check is deliberately conservative: it can only ever suppress a finding,
 // never create one.

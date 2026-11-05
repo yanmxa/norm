@@ -1,8 +1,9 @@
 # Measuring code health with metron
 
-metron reports explicit metrics about Go code and, for each gap, the change that
-closes it. Run it, read what it found, and turn that into work someone can do in
-order.
+metron reports explicit code metrics and, for each gap, the change that
+closes it. Graph checks support Go, JavaScript/TypeScript and Python; complexity
+and mutation currently support Go only. Run it, read what it found, and turn
+that into work someone can do in order.
 
 Every number is deterministic — same commit in, same number out. Never estimate a
 metric, and never describe one you did not run. If a reading is unavailable, say
@@ -15,19 +16,21 @@ command -v metron || echo "install: https://github.com/yanmxa/metron"
 command -v go
 ```
 
-The graph axis needs a CodeGraph index. If `.codegraph/` is absent, ask before
-creating one — indexing is the user's decision.
+The graph axis automatically builds a local index in `.metron/`; no external
+indexer or Node runtime is needed. Unresolved calls are reported as a limitation,
+not invented as edges. Go is needed when running mutation tests.
 
 ## Measure
 
-After changing Go code, measure the change:
+After changing supported source code, measure the change:
 
 ```bash
 metron --since main --axes complexity,graph --format json
 ```
 
-That takes about a second. Add the mutation axis when the question is whether the
-tests hold up — it runs the test suite, so it costs minutes on a large repository:
+Indexing cost depends on repository size; unchanged files reuse cached parses.
+Add the mutation axis when the question is whether Go tests hold up — it runs
+the test suite, so it costs minutes on a large repository:
 
 ```bash
 metron --since main --axes all --budget 10m --format json
@@ -94,7 +97,7 @@ what to fix in order, then what was not measured.
 ```markdown
 # Code health: <repo or package>
 
-Measured with `metron --all --axes ...` on <commit>. <N> Go files.
+Measured with `metron --all --axes ...` on <commit>. <N> source files.
 
 ## State
 
@@ -116,7 +119,7 @@ assertions for <the specific survivors metron listed>.
 
 ## Not measured
 - `cognitive Δ` — `--all` has no base revision. Run `metron --since main`.
-- graph axis — no `.codegraph` index in this repository.
+- graph inconsistency — no base revision for new-edge checks.
 ```
 
 Ground every claim in a number metron produced.

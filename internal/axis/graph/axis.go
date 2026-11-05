@@ -1,3 +1,4 @@
+// Package graph checks redundancy and structural consistency using a local code index.
 package graph
 
 import (
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/yanmxa/metron/internal/axis"
+	"github.com/yanmxa/metron/internal/codeindex"
 	"github.com/yanmxa/metron/internal/target"
 )
 
@@ -19,13 +21,12 @@ type Config struct {
 	MinSiblings int     // how many neighbours a convention needs before it is one
 	MinShare    float64 // how consistent they must be
 	MaxObs      int
-	Sync        bool // refresh the index before reading it
 }
 
 func DefaultConfig() Config {
 	return Config{
 		Thresholds: DefaultThresholds(), MinSiblings: 5, MinShare: 0.8,
-		MaxObs: 20, Sync: true,
+		MaxObs: 20,
 	}
 }
 
@@ -36,11 +37,8 @@ func New(cfg Config) *Axis { return &Axis{cfg: cfg} }
 func (a *Axis) ID() string { return "graph" }
 
 func (a *Axis) Available(_ context.Context, t *target.Target) (bool, string) {
-	if !HasIndex(t.Root) {
-		return false, "no .codegraph index — run codegraph init in this repository"
-	}
-	if len(t.GoFiles()) == 0 {
-		return false, "no Go files changed"
+	if len(t.SupportedFiles()) == 0 {
+		return false, "no supported source files changed"
 	}
 	return true, ""
 }
@@ -48,25 +46,15 @@ func (a *Axis) Available(_ context.Context, t *target.Target) (bool, string) {
 func (a *Axis) Run(ctx context.Context, t *target.Target, prog chan<- axis.Progress) (*axis.Result, error) {
 	r := &axis.Result{AxisID: a.ID()}
 
-	if a.cfg.Sync {
-		send(prog, axis.Progress{AxisID: a.ID(), Stage: "sync"})
-		if err := Sync(ctx, t.Root); err != nil {
-			// A stale index still answers most questions; say so rather than
-			// refusing to measure.
-			r.Notes = append(r.Notes, "index may be stale (codegraph sync failed)")
-		}
-	}
-
-	send(prog, axis.Progress{AxisID: a.ID(), Stage: "load"})
-	db, closeDB, err := Open(t.Root)
+	send(prog, axis.Progress{AxisID: a.ID(), Stage: "index"})
+	idx, err := codeindex.Build(ctx, t.Root)
 	if err != nil {
 		return nil, err
 	}
-	defer closeDB()
-
-	g, err := Load(ctx, db)
-	if err != nil {
-		return nil, err
+	g := FromIndex(idx)
+	r.Notes = append(r.Notes, "Native static call graph: dynamic and ambiguous calls are unresolved; new calls are compared by name only. Orphan and local convention checks are Go-only.")
+	if idx.Unresolved > 0 {
+		r.Notes = append(r.Notes, fmt.Sprintf("%d call sites unresolved (not evidence of absent dependencies)", idx.Unresolved))
 	}
 
 	iu, err := ScanIdents(t.Root)
@@ -74,7 +62,7 @@ func (a *Axis) Run(ctx context.Context, t *target.Target, prog chan<- axis.Progr
 		return nil, fmt.Errorf("scan identifiers: %w", err)
 	}
 
-	changed, newCallees, missing := a.changedNodes(ctx, t, g)
+	changed, newCallees, missing, baselineErr := a.changedNodes(ctx, t, g)
 	if len(changed) == 0 {
 		r.Measures = unmeasured("the index has none of the changed symbols — it may need rebuilding")
 		return r, nil
@@ -88,13 +76,14 @@ func (a *Axis) Run(ctx context.Context, t *target.Target, prog chan<- axis.Progr
 	orphans := Orphans(g, changed, iu, iu.AppPackage)
 	dups := append(NearDuplicates(g, changed, a.cfg.Thresholds),
 		Reimplementations(g, changed, a.cfg.Thresholds)...)
+	dups = append(dups, ExactBodyDuplicates(g, changed)...)
 	divergence := SiblingDivergence(g, changed, a.cfg.MinSiblings, a.cfg.MinShare)
 
 	// Bypassing and unprecedented dependencies are both questions about edges
 	// the change drew. With no base revision every edge looks new, so they are
 	// not asked at all rather than answered with noise.
 	var bypassed, crossings []Finding
-	if !t.WholeRepo {
+	if !t.WholeRepo && baselineErr == nil {
 		bypassed = BypassedWrappers(g, changed, newCallees, a.cfg.Thresholds)
 		crossings = LayerCrossings(g, changed, newCallees)
 	}
@@ -132,6 +121,11 @@ func (a *Axis) Run(ctx context.Context, t *target.Target, prog chan<- axis.Progr
 		}
 	}
 
+	if baselineErr != nil {
+		inconsistentM.Status = axis.StatusUnmeasured
+		inconsistentM.Note = "base comparison unavailable: " + baselineErr.Error()
+	}
+
 	r.Measures = []axis.Measure{
 		count("graph.redundant", "redundant code", redundant,
 			breakdown("unreachable", len(orphans), "duplicated", len(dups))),
@@ -144,6 +138,9 @@ func (a *Axis) Run(ctx context.Context, t *target.Target, prog chan<- axis.Progr
 		"graph.layer_crossings":    float64(len(crossings)),
 		"graph.sibling_divergence": float64(len(divergence)),
 		"graph.changed_symbols":    float64(len(changed)),
+		"graph.indexed_files":      float64(len(idx.Files)),
+		"graph.resolved_calls":     float64(len(idx.Edges)),
+		"graph.unresolved_calls":   float64(idx.Unresolved),
 	}
 
 	all := append(append(append(append(orphans, dups...), bypassed...), crossings...), divergence...)
@@ -154,57 +151,37 @@ func (a *Axis) Run(ctx context.Context, t *target.Target, prog chan<- axis.Progr
 // changedNodes maps the change's functions onto index symbols. A function the
 // index does not know about is reported as a gap rather than silently dropped —
 // a stale index would otherwise look like a clean bill of health.
-func (a *Axis) changedNodes(ctx context.Context, t *target.Target, g *Graph) ([]Node, NewCallees, int) {
+func (a *Axis) changedNodes(ctx context.Context, t *target.Target, g *Graph) ([]Node, NewCallees, int, error) {
 	var out []Node
-	seen := map[string]bool{}
 	nc := NewCallees{}
 	missing := 0
-
-	for _, cf := range t.GoFiles() {
-		if target.IsTestFile(cf.Path) {
-			continue
-		}
-		src, err := os.ReadFile(filepath.Join(t.Root, cf.Path))
+	var baselineErr error
+	for _, cf := range t.SupportedFiles() {
+		cur, err := parseChangedFile(ctx, t.Root, cf.Path)
 		if err != nil {
+			missing++
+			baselineErr = err
 			continue
 		}
-		fset := token.NewFileSet()
-		f, perr := parser.ParseFile(fset, cf.Path, src, parser.ParseComments)
-		if perr != nil || target.IsGenerated(f) {
+		if cur == nil {
 			continue
 		}
-
-		// What this file called before the change, so the consistency rules can
-		// tell a newly drawn edge from one that was always there.
-		basePath := cf.Path
-		if cf.Status == target.Renamed && cf.OldPath != "" {
-			basePath = cf.OldPath
+		baseCalls, err := baselineCalls(ctx, t, cf)
+		if err != nil {
+			baselineErr = err
 		}
-		baseSrc, _ := target.ShowFile(ctx, t.Root, t.BaseSHA, basePath)
-		curCalls := CalleeNames(cf.Path, src)
-		baseCalls := CalleeNames(cf.Path, baseSrc)
-
-		for _, fn := range target.AllFuncs(fset, f, cf.Path) {
-			touched := false
-			for _, rg := range cf.Ranges {
-				if rg.Overlaps(fn.StartLine, fn.EndLine) {
-					touched = true
-					break
-				}
-			}
-			if !touched {
+		curCalls := indexedCalls(*cur)
+		for _, sym := range cur.Symbols {
+			n, ok := g.Nodes[sym.ID]
+			if !symbolTouched(sym, cf.Ranges) {
 				continue
 			}
-			n, ok := g.FindFunc(cf.Path, fn.Name, fn.Recv, fn.StartLine)
 			if !ok {
 				missing++
 				continue
 			}
-			if !seen[n.ID] {
-				seen[n.ID] = true
-				out = append(out, n)
-				nc.Add(n.Key(), Diff(curCalls[fn.Key()], baseCalls[fn.Key()]))
-			}
+			out = append(out, n)
+			nc.Add(n.Key(), Diff(curCalls[sym.Qualified], baseCalls[sym.Qualified]))
 		}
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -213,7 +190,87 @@ func (a *Axis) changedNodes(ctx context.Context, t *target.Target, g *Graph) ([]
 		}
 		return out[i].StartLine < out[j].StartLine
 	})
-	return out, nc, missing
+	return out, nc, missing, baselineErr
+}
+
+// parseChangedFile excludes tests, generated Go and non-regular files before parsing.
+func parseChangedFile(ctx context.Context, root, path string) (*codeindex.File, error) {
+	if target.IsTestFile(path) {
+		return nil, nil
+	}
+	full := filepath.Join(root, path)
+	info, err := os.Lstat(full)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, nil
+	}
+	src, err := os.ReadFile(full)
+	if err != nil {
+		return nil, err
+	}
+	if strings.HasSuffix(path, ".go") {
+		f, err := parser.ParseFile(token.NewFileSet(), path, src, parser.ParseComments)
+		if err == nil && target.IsGenerated(f) {
+			return nil, nil
+		}
+	}
+	f, err := codeindex.Parse(ctx, path, src)
+	return &f, err
+}
+
+func baselineCalls(ctx context.Context, t *target.Target, cf target.ChangedFile) (map[string]map[string]bool, error) {
+	if t.WholeRepo || cf.Status == target.Added {
+		return nil, nil
+	}
+	path := cf.Path
+	if cf.Status == target.Renamed && cf.OldPath != "" {
+		path = cf.OldPath
+	}
+	src, err := target.ShowFileStrict(ctx, t.Root, t.BaseSHA, path)
+	if err != nil {
+		return nil, err
+	}
+	base, err := codeindex.Parse(ctx, cf.Path, src)
+	if err != nil {
+		return nil, err
+	}
+	return indexedCalls(base), nil
+}
+
+func symbolTouched(s codeindex.Symbol, ranges []target.LineRange) bool {
+	if s.Kind != "function" && s.Kind != "method" {
+		return false
+	}
+	for _, r := range ranges {
+		if r.Overlaps(s.StartLine, s.EndLine) {
+			return true
+		}
+	}
+	return false
+}
+
+func indexedCalls(f codeindex.File) map[string]map[string]bool {
+	aliases := map[string]string{}
+	for _, im := range f.Imports {
+		if im.Name != "" && im.Name != "*" && im.Name != "default" {
+			aliases[im.Alias] = im.Name
+		}
+	}
+	out := map[string]map[string]bool{}
+	for _, s := range f.Symbols {
+		names := map[string]bool{}
+		for _, c := range s.Calls {
+			name := c.Name
+			if c.Qualifier == "" && aliases[name] != "" {
+				name = aliases[name]
+			}
+			names[name] = true
+		}
+		out[s.Qualified] = names
+	}
+	return out
 }
 
 func (a *Axis) observations(fs []Finding) []axis.Observation {

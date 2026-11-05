@@ -168,8 +168,11 @@ Crap4j 原版的 `tested` 用的是**行覆盖率**。metron 换成了这个函�
 
 ### 用整个仓库的图
 
-metron 会读一份 [CodeGraph](https://github.com/colbymchenry/codegraph) 索引——仓库里
-所有符号和它们之间的所有边——然后拿这次改动跟它对照。
+metron 内置 Go、JavaScript/TypeScript（含 JSX/TSX）和 Python 索引器，
+将改动与仓库里可静态解析的调用关系、已有函数体对照。不需要安装 CodeGraph 或 Node。
+解析结果按内容缓存到 `.metron/index.json`，每次运行重新解析符号间关系。
+有歧义的调用、动态分派和外部依赖不会被猜测成图中的边。
+不可达代码检查及 context/error 惯例检查目前仍仅适用于 Go。
 
 **冗余代码** —— 本来不必存在的东西:
 
@@ -219,16 +222,17 @@ curl -fsSL https://raw.githubusercontent.com/yanmxa/metron/main/install.sh | sh
 go install github.com/yanmxa/metron/cmd/metron@latest
 ```
 
-需要一个 git 仓库;只有从源码构建才需要 Go 1.26+。graph 这条轴还需要一份
-[CodeGraph](https://github.com/colbymchenry/codegraph) 索引,跑 `codegraph init`
-就有了;没有的话这条轴报 `n/a` 并说明原因,而不是默默地算通过。
+增量分析需要 git 仓库。从源码构建需要 Go 1.26+、C 编译器和 `CGO_ENABLED=1`，
+用于编译内置的 Tree-sitter 解析器。发布二进制已包含解析器，graph 分析不需要目标语言
+运行时或外部索引工具。复杂度和变异测试目前仅支持 Go；变异测试还需要 Go 工具链
+来执行目标项目的测试。
 
 ## 使用
 
 ```bash
 cd your-repo
 metron init                         # 可选:按这个仓库现状校准参考区间
-metron --since main                 # complexity + graph,大约一秒
+metron --since main                 # complexity + graph，自动建立源码索引
 metron --since main --axes all      # 加上 mutation:会跑你的测试套件
 metron --all                        # 量整个仓库,而不是一次改动
 ```

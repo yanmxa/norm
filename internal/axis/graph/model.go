@@ -7,24 +7,26 @@ import (
 
 // Node is one symbol in the index.
 type Node struct {
-	ID        string
-	Kind      string // function | method | struct | interface | constant | variable | ...
-	Name      string
-	Qualified string // "Command::Execute" for methods; the bare name for functions
-	File      string // repo-relative
-	StartLine int
-	EndLine   int
-	Signature string
+	ID          string
+	Kind        string // function | method | struct | interface | constant | variable | ...
+	Name        string
+	Qualified   string // "Command::Execute" for methods; the bare name for functions
+	File        string // repo-relative
+	StartLine   int
+	EndLine     int
+	Signature   string
+	Language    string
+	Fingerprint string
 }
 
-// IsFunc reports whether this node is callable code worth measuring.
+// IsGo reports whether Go-specific rules apply to this symbol.
+func (n Node) IsGo() bool {
+	return n.Language == "go" || (n.Language == "" && strings.HasSuffix(n.File, ".go"))
+}
+
 func (n Node) IsFunc() bool { return n.Kind == "function" || n.Kind == "method" }
 
 // Exported reports whether Go would export this symbol.
-//
-// The index's own is_exported column is unreliable for Go methods — it reads 0
-// for exported ones — so metron decides from the name, which is what the Go
-// language does anyway.
 func (n Node) Exported() bool {
 	for _, r := range n.Name {
 		return unicode.IsUpper(r)
@@ -43,6 +45,9 @@ func (n Node) Recv() string {
 // Key identifies a symbol the same way target.Func does, so index nodes and
 // parsed declarations can be matched up.
 func (n Node) Key() string {
+	if !n.IsGo() && n.Qualified != "" {
+		return n.File + ":" + n.Qualified
+	}
 	if r := n.Recv(); r != "" {
 		return n.File + ":(" + r + ")." + n.Name
 	}

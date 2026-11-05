@@ -5,11 +5,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/yanmxa/metron/internal/codeindex"
 )
 
 // Resolve builds a Target for everything that changed on this branch relative
@@ -51,7 +54,7 @@ func Resolve(ctx context.Context, dir, baseRef string) (*Target, error) {
 	// git diff cannot see a file that was never added, and new files are most
 	// of what an agent produces. Left out, a change consisting entirely of new
 	// code measured as nothing changed and reported all clear.
-	untracked, err := untrackedGoFiles(ctx, root)
+	untracked, err := untrackedSourceFiles(ctx, root)
 	if err != nil {
 		return nil, err
 	}
@@ -156,23 +159,31 @@ func parseHunkNewSide(hdr string) (start, count int, ok bool) {
 	return start, count, true
 }
 
-// untrackedGoFiles lists Go files git does not know about yet, as wholly added.
-//
-// Only Go files: an untracked build artefact or a stray note is not something
-// to measure, and including everything would make the file count meaningless.
-func untrackedGoFiles(ctx context.Context, root string) ([]ChangedFile, error) {
-	out, err := git(ctx, root, "ls-files", "--others", "--exclude-standard", "-z", "--", "*.go")
+// untrackedSourceFiles lists supported source files git does not know about yet,
+// as wholly added. Build artifacts, excluded directories and symlinks are skipped.
+func untrackedSourceFiles(ctx context.Context, root string) ([]ChangedFile, error) {
+	out, err := git(ctx, root, "ls-files", "--others", "--exclude-standard", "-z", "--")
 	if err != nil {
 		return nil, fmt.Errorf("listing untracked files: %w", err)
 	}
 
 	var files []ChangedFile
 	for _, rel := range strings.Split(out, "\x00") {
-		if rel == "" {
+		if rel == "" || !codeindex.Supported(rel) || excludedPath(rel) {
+			continue
+		}
+		info, err := os.Lstat(filepath.Join(root, rel))
+		if err != nil {
+			return nil, err
+		}
+		if !info.Mode().IsRegular() {
 			continue
 		}
 		n, err := countFileLines(filepath.Join(root, rel))
-		if err != nil || n == 0 {
+		if err != nil {
+			return nil, err
+		}
+		if n == 0 {
 			continue
 		}
 		files = append(files, ChangedFile{
@@ -197,6 +208,21 @@ func ShowFile(ctx context.Context, root, rev, path string) ([]byte, error) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("git show %s:%s: %w", rev, path, err)
+	}
+	return out, nil
+}
+
+// ShowFileStrict requires the baseline path to exist. Use for known non-added files;
+// an invalid ref or missing baseline must not be interpreted as new dependencies.
+func ShowFileStrict(ctx context.Context, root, rev, path string) ([]byte, error) {
+	if rev == "" {
+		return nil, fmt.Errorf("missing base revision")
+	}
+	cmd := exec.CommandContext(ctx, "git", "show", rev+":"+path)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("read baseline %s: %w", path, err)
 	}
 	return out, nil
 }

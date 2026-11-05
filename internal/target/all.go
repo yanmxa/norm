@@ -8,9 +8,11 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/yanmxa/metron/internal/codeindex"
 )
 
-// ResolveAll builds a Target covering every Go file in the repository rather
+// ResolveAll builds a Target covering every supported source file in the repository rather
 // than the files one change touched.
 //
 // This is a different question from the diff-scoped one and it answers fewer
@@ -21,31 +23,60 @@ import (
 // tests fail to pin.
 func ResolveAll(ctx context.Context, dir string) (*Target, error) {
 	root, err := git(ctx, dir, "rev-parse", "--show-toplevel")
+	var included map[string]bool
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 		root = dir // usable outside a repository; only Δ needs git
+	} else {
+		listed, err := git(ctx, strings.TrimSpace(root), "ls-files", "--cached", "--others", "--exclude-standard", "-z")
+		if err != nil {
+			return nil, err
+		}
+		included = map[string]bool{}
+		for _, p := range strings.Split(listed, "\x00") {
+			included[p] = true
+		}
 	}
-	root = strings.TrimSpace(root)
+	root, err = filepath.Abs(strings.TrimSpace(root))
+	if err != nil {
+		return nil, err
+	}
 
 	var files []ChangedFile
 	err = filepath.WalkDir(root, func(path string, d os.DirEntry, werr error) error {
 		if werr != nil {
-			return nil
+			return werr
+		}
+		if err := ctx.Err(); err != nil {
+			return err
 		}
 		if d.IsDir() {
-			if path != root && skipDir(d.Name()) {
+			rel, err := filepath.Rel(root, path)
+			if err != nil {
+				return err
+			}
+			if path != root && excludedPath(filepath.ToSlash(rel)+"/") {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if !strings.HasSuffix(path, ".go") {
+		if !d.Type().IsRegular() || !codeindex.Supported(path) {
 			return nil
 		}
 		rel, rerr := filepath.Rel(root, path)
 		if rerr != nil {
+			return rerr
+		}
+		if included != nil && !included[filepath.ToSlash(rel)] {
 			return nil
 		}
 		n, cerr := countFileLines(path)
-		if cerr != nil || n == 0 {
+		if cerr != nil {
+			return cerr
+		}
+		if n == 0 {
 			return nil
 		}
 		files = append(files, ChangedFile{
@@ -59,7 +90,7 @@ func ResolveAll(ctx context.Context, dir string) (*Target, error) {
 		return nil, fmt.Errorf("walking %s: %w", root, err)
 	}
 	if len(files) == 0 {
-		return nil, fmt.Errorf("no Go files under %s", root)
+		return nil, fmt.Errorf("no supported source files under %s", root)
 	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
 
@@ -87,7 +118,7 @@ func countFileLines(path string) (int, error) {
 
 func skipDir(name string) bool {
 	switch name {
-	case ".git", "vendor", "node_modules", "testdata", ".codegraph", ".metron":
+	case ".git", "vendor", "node_modules", "testdata", ".codegraph", ".metron", "venv", "__pycache__":
 		return true
 	}
 	return strings.HasPrefix(name, ".")

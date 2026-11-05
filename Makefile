@@ -2,6 +2,18 @@ GO      ?= go
 BIN     ?= bin/metron
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo devel)
 
+# Native Tree-sitter grammars are compiled into the executable. A native C
+# compiler is required; setting GOOS/GOARCH alone is not cross-compilation.
+export CGO_ENABLED := 1
+.DEFAULT_GOAL := help
+
+.PHONY: package
+package: ## Package the native target (requires GoReleaser v2, Python, and a C compiler)
+	@config=$$(mktemp); trap 'rm -f "$$config"' EXIT; \
+	  python3 scripts/native-release-config.py "$$config" && \
+	  METRON_LINK_FLAGS="$$(case $$($(GO) env GOHOSTOS) in linux|windows) printf '%s' '-linkmode external -extldflags -static';; esac)" \
+	  goreleaser release --snapshot --clean --skip=publish,announce --config="$$config"
+
 .PHONY: help
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | \

@@ -56,7 +56,7 @@ func DefaultThresholds() Thresholds {
 func Orphans(g *Graph, changed []Node, iu *IdentUse, appPkg func(file string) bool) []Finding {
 	var out []Finding
 	for _, n := range changed {
-		if !n.IsFunc() || isTestFile(n.File) || conventionEntryPoint(n) {
+		if !n.IsGo() || !n.IsFunc() || isTestFile(n.File) || conventionEntryPoint(n) {
 			continue
 		}
 		if n.Exported() && !appPkg(n.File) {
@@ -89,7 +89,7 @@ func NearDuplicates(g *Graph, changed []Node, th Thresholds) []Finding {
 	seen := map[string]bool{}
 
 	for _, n := range changed {
-		if !n.IsFunc() || isTestFile(n.File) {
+		if !n.IsGo() || !n.IsFunc() || isTestFile(n.File) {
 			continue
 		}
 		mine := g.Callees(n.ID)
@@ -151,7 +151,7 @@ func NearDuplicates(g *Graph, changed []Node, th Thresholds) []Finding {
 func Reimplementations(g *Graph, changed []Node, th Thresholds) []Finding {
 	var out []Finding
 	for _, n := range changed {
-		if !n.IsFunc() || isTestFile(n.File) || n.Signature == "" {
+		if !n.IsGo() || !n.IsFunc() || isTestFile(n.File) || n.Signature == "" {
 			continue
 		}
 		callees := g.Callees(n.ID)

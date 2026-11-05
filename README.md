@@ -180,8 +180,12 @@ repository that got worse, and you cannot see shape from inside one diff.
 
 ### A graph of the whole repository
 
-metron reads a [CodeGraph](https://github.com/colbymchenry/codegraph) index —
-every symbol and every edge between them — and compares the change against it.
+metron builds its own local index for Go, JavaScript/TypeScript (including JSX/TSX),
+and Python, then compares the change against statically resolved calls and existing
+function bodies. No CodeGraph installation or Node runtime is needed. Parsed files
+are cached by content in `.metron/index.json`; relationships are resolved again on
+every run. Ambiguous calls, dynamic dispatch, and external dependencies are not
+invented as edges. Orphan detection and context/error conventions remain Go-only.
 
 **Redundant code** — something that did not need to exist:
 
@@ -234,17 +238,18 @@ curl -fsSL https://raw.githubusercontent.com/yanmxa/metron/main/install.sh | sh
 go install github.com/yanmxa/metron/cmd/metron@latest
 ```
 
-Needs a git repository, and Go 1.26+ only if you build from source. The graph
-axis also needs a [CodeGraph](https://github.com/colbymchenry/codegraph) index —
-`codegraph init` enables it. Without one that axis reports `n/a` and says why,
-rather than quietly passing.
+Diff analysis needs a git repository. Source builds require Go 1.26+, a C
+compiler, and `CGO_ENABLED=1` for the bundled Tree-sitter parsers. Release binaries
+include the parsers; graph analysis needs no language runtime or separate indexer.
+Complexity and mutation currently support Go only; mutation also needs the Go
+toolchain to run the target project's tests.
 
 ## Run
 
 ```bash
 cd your-repo
 metron init                         # optional: calibrate the ranges to this repo
-metron --since main                 # complexity + graph, about a second
+metron --since main                 # complexity + graph; automatically indexes sources
 metron --since main --axes all      # adds mutation: runs your test suite
 metron --all                        # measure the whole repository, not a change
 ```

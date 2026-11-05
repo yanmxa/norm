@@ -5,19 +5,100 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  goreleaser:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {runner: ubuntu-22.04, goos: linux, goarch: amd64}
+          - {runner: ubuntu-24.04-arm, goos: linux, goarch: arm64}
+          - {runner: macos-15-intel, goos: darwin, goarch: amd64}
+          - {runner: macos-15, goos: darwin, goarch: arm64}
+          - {runner: windows-2022, goos: windows, goarch: amd64}
+          # Windows ARM64 is intentionally not advertised: the hosted native
+          # GCC/MinGW toolchain used here only supports Windows AMD64.
+    runs-on: ${{ matrix.runner }}
+    env:
+      CGO_ENABLED: "1"
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      # No glibc dependency on Linux; macOS uses the system SDK/libSystem.
+      # MinGW also links statically so the Windows zip needs no compiler DLLs.
+      METRON_LINK_FLAGS: ${{ matrix.goos != 'darwin' && '-linkmode external -extldflags -static' || '' }}
     steps:
       - uses: actions/checkout@v4
         with: {fetch-depth: 0}
       - uses: actions/setup-go@v5
         with: {go-version: "1.26"}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - name: install native Windows C compiler
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-gcc
+      - name: select Windows C compiler
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo 'C:/msys64/mingw64/bin' >> "$GITHUB_PATH"
+      - name: verify native toolchain and test
+        shell: bash
+        run: |
+          test "$(go env GOHOSTOS)" = "$GOOS"
+          test "$(go env GOHOSTARCH)" = "$GOARCH"
+          gcc --version
+          go test ./...
+      - name: generate native GoReleaser configuration
+        shell: bash
+        run: python3 scripts/native-release-config.py "$RUNNER_TEMP/goreleaser.yml"
       - uses: goreleaser/goreleaser-action@v6
         with:
-          version: latest
-          args: release --clean
+          version: '~> v2'
+          args: release --clean --skip=publish,announce --config=${{ runner.temp }}/goreleaser.yml
+      - name: smoke test packaged executable
+        shell: bash
+        run: |
+          mkdir smoke
+          if [ "$GOOS" = windows ]; then
+            unzip "dist/metron_${GOOS}_${GOARCH}.zip" -d smoke
+            ./smoke/metron.exe --version
+          else
+            tar -xzf "dist/metron_${GOOS}_${GOARCH}.tar.gz" -C smoke
+            ./smoke/metron --version
+          fi
+          test -f smoke/LICENSE
+          test -d smoke/licenses
+      - uses: actions/upload-artifact@v4
+        with:
+          name: metron-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/metron_*.tar.gz
+            dist/metron_*.zip
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: metron-*
+          merge-multiple: true
+          path: dist
+      - name: checksum and publish all native archives
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          # Publish only after all five native builds and smoke tests pass.
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 5
+          (cd dist && sha256sum metron_*.tar.gz metron_*.zip > checksums.txt)
+          gh release create "$RELEASE_TAG" dist/* --verify-tag --generate-notes

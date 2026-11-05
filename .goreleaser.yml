@@ -1,27 +1,34 @@
 version: 2
 
+# This is an input template: GoReleaser does not template goos/goarch itself.
+# `make package` and CI materialize it with scripts/native-release-config.py,
+# which also rejects cross-compilation. CI combines all native archives.
 before:
   hooks:
-    - go mod tidy
+    - go mod download
+    - python3 scripts/release-licenses.py
 
 builds:
   - main: ./cmd/metron
     binary: metron
-    env: [CGO_ENABLED=0]
-    goos: [linux, darwin, windows]
-    goarch: [amd64, arm64]
+    env: [CGO_ENABLED=1]
+    goos: ["{{ .Env.GOOS }}"]
+    goarch: ["{{ .Env.GOARCH }}"]
     ldflags:
-      - -s -w -X main.version={{.Version}}
+      - -s -w -X main.version={{.Version}} {{ .Env.METRON_LINK_FLAGS }}
 
 archives:
-  # No version in the name, so install.sh can fetch
-  # releases/latest/download/metron_<os>_<arch>.tar.gz without first asking
-  # what the latest version is.
-  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+  # Stable names are required by install.sh.
+  - name_template: "metron_{{ .Os }}_{{ .Arch }}"
     formats: [tar.gz]
     format_overrides:
       - goos: windows
         formats: [zip]
+    files:
+      - LICENSE
+      - src: bin/release-licenses/*
+        dst: licenses
+        strip_parent: true
 
 checksum:
   name_template: checksums.txt

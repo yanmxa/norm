@@ -196,7 +196,7 @@ func SiblingDivergence(g *Graph, changed []Node, minSiblings int, minShare float
 
 	var out []Finding
 	for _, n := range changed {
-		if !n.IsFunc() || isTestFile(n.File) || n.Signature == "" {
+		if !n.IsGo() || !n.IsFunc() || isTestFile(n.File) || n.Signature == "" {
 			continue
 		}
 		siblings := siblingsOf(byDir[n.Dir()], n, changedIDs)
@@ -255,7 +255,7 @@ func countHolding(nodes []Node, holds func(Node) bool) int {
 func funcsByDir(g *Graph) map[string][]Node {
 	out := map[string][]Node{}
 	for _, n := range g.Nodes {
-		if n.IsFunc() && !isTestFile(n.File) {
+		if n.IsGo() && n.IsFunc() && !isTestFile(n.File) {
 			out[n.Dir()] = append(out[n.Dir()], n)
 		}
 	}

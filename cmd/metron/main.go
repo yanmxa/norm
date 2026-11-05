@@ -238,7 +238,7 @@ func initConfig(ctx context.Context, dir string) error {
 
 	limit := config.Ratchet(worst)
 	fmt.Printf("wrote %s\n\n", path)
-	fmt.Printf("  %d Go files · worst function scores %d\n", len(t.Files), worst)
+	fmt.Printf("  %d Go files · worst function scores %d\n", len(t.GoFiles()), worst)
 	if limit > worst {
 		fmt.Printf("  complexity limit %d — the default, which this repository is already inside\n", limit)
 	} else {

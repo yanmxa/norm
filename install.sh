@@ -139,7 +139,7 @@ install_binary() {
 
 # --- skill -----------------------------------------------------------------
 
-DESC="Measure Go code with metron - mutation score, cognitive complexity, and graph-level redundancy - then act on the specific change each finding names. Use after writing or changing Go code, when reviewing code health, or when asked whether tests actually hold the code up."
+DESC="Measure code with metron: graph redundancy and consistency for Go, JavaScript/TypeScript and Python, plus Go mutation score and cognitive complexity. Use after changing code or reviewing code health, then act on the evidence each finding provides."
 
 body() {
 	if [ -f agent/metron.md ]; then
@@ -162,7 +162,7 @@ install_claude() {
 }
 
 install_cursor() {
-	{ printf -- '---\ndescription: %s\nglobs: ["**/*.go"]\nalwaysApply: false\n---\n\n' "$DESC"; body; } |
+	{ printf -- '---\ndescription: %s\nglobs: ["**/*.go", "**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.py"]\nalwaysApply: false\n---\n\n' "$DESC"; body; } |
 		write_file .cursor/rules/metron.mdc
 }
 

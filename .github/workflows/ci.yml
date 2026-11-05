@@ -8,7 +8,39 @@ on:
 permissions:
   contents: read
 
+env:
+  CGO_ENABLED: "1"
+
 jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-22.04, ubuntu-24.04-arm, macos-15-intel, macos-15, windows-2022]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
+      - name: install native Windows C compiler
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-gcc
+      - name: select Windows C compiler
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo 'C:/msys64/mingw64/bin' >> "$GITHUB_PATH"
+      - name: native build and tests (no Node parser runtime)
+        shell: bash
+        run: |
+          gcc --version
+          go build ./...
+          go test ./...
+
   test:
     runs-on: ubuntu-latest
     steps:
